@@ -1,0 +1,51 @@
+module DijkstraPaths where
+
+import Numeric.Natural
+
+```hs
+type Vertex = String
+
+type Via = (Natural, Vertex)
+
+via :: Natural -> Vertex -> Via
+via = (,)
+
+viaLeq :: Via -> Via -> Bool
+viaLeq x y = y <= x
+```
+
+rel Edge: Vertex, Vertex, Dist
+rel Distance: Vertex, Dist
+rel Predecessor: Vertex, BestVia
+
+lat Dist where
+  type = Natural
+  leq = (>=)
+  join = min
+  meet = max
+
+lat BestVia where
+  type = Via
+  leq = viaLeq
+  join = min
+  meet = max
+
+rule relax:
+  Distance from distance,
+  Edge from to weight
+  -------------------------
+  |- Distance to (distance + weight)
+
+rule recordPredecessor:
+  Distance from distance,
+  Edge from to weight
+  -------------------------
+  |- Predecessor to (via (distance + weight) from)
+
+priority:
+  (distance1 + weight1) > (distance2 + weight2)
+  |- relax { distance = distance1, weight = weight1 }
+     < relax { distance = distance2, weight = weight2 }
+
+query allDistances: Distance - -
+query allPredecessors: Predecessor - -

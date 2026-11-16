@@ -1,0 +1,99 @@
+module BattleOfTheSexesMixed where
+
+```hs
+type Player = String
+type Action = String
+type Probability = Rational
+
+calculateProbability :: Int -> Int -> Int -> Int -> Probability
+calculateProbability payoffA payoffB payoffC payoffD =
+  fromIntegral (payoffD - payoffB)
+    / fromIntegral
+      (payoffA - payoffB - payoffC + payoffD)
+
+hasUniqueInteriorSolution :: Int -> Int -> Int -> Int -> Bool
+hasUniqueInteriorSolution payoffA payoffB payoffC payoffD =
+  denominator /= 0
+    && probability > 0
+    && probability < 1
+  where
+    denominator = payoffA - payoffB - payoffC + payoffD
+    probability = calculateProbability payoffA payoffB payoffC payoffD
+```
+
+lat IsEquilibrium where
+  type = Bool
+  leq = (>=)
+  join = (&&)
+  meet = (||)
+
+rel Players: Player, Player
+rel PayOff: Player, Action, Action, Int
+
+rel Play: Action, Action, Int, Int
+rel NonEq: Action, Action
+rel EquilibriumStatus: Action, Action, IsEquilibrium
+
+rel OppProbability: Player, Action, Probability
+rel StrategyProbability: Player, Action, Probability
+
+rule constructPlay:
+  Players alice bob,
+  PayOff alice aliceAction bobAction alicePayoff,
+  PayOff bob bobAction aliceAction bobPayoff
+  -------------------------------------------------
+  |- Play aliceAction bobAction alicePayoff bobPayoff
+
+rule firstPlayerCanImprove:
+  Play aliceAction bobAction alicePayoff _,
+  Play alternative bobAction alternativePayoff _,
+  if ((aliceAction /= alternative) && (alicePayoff < alternativePayoff))
+  ----------------------------------------------------------------------
+  |- NonEq aliceAction bobAction
+
+rule secondPlayerCanImprove:
+  Play aliceAction bobAction _ bobPayoff,
+  Play aliceAction alternative _ alternativePayoff,
+  if ((bobAction /= alternative) && (bobPayoff < alternativePayoff))
+  ------------------------------------------------------------------
+  |- NonEq aliceAction bobAction
+
+rule assumePureEquilibrium:
+  Play aliceAction bobAction _ _
+  -----------------------------------------------
+  |- EquilibriumStatus aliceAction bobAction True
+
+rule rejectNonEquilibrium:
+  NonEq aliceAction bobAction
+  ------------------------------------------------
+  |- EquilibriumStatus aliceAction bobAction False
+
+rule calculateOpponentProbability:
+  PayOff player action1 opponentAction1 payoffA,
+  PayOff player action1 opponentAction2 payoffB,
+  PayOff player action2 opponentAction1 payoffC,
+  PayOff player action2 opponentAction2 payoffD,
+  if ((action1 /= action2) && (opponentAction1 /= opponentAction2)),
+  if hasUniqueInteriorSolution payoffA payoffB payoffC payoffD
+  ---------------------------------------------------------------
+  |- OppProbability
+       player
+       opponentAction1
+       (calculateProbability payoffA payoffB payoffC payoffD)
+
+rule assignFirstPlayerProbability:
+  Players player1 player2,
+  OppProbability player2 action probability
+  --------------------------------------------
+  |- StrategyProbability player1 action probability
+
+rule assignSecondPlayerProbability:
+  Players player1 player2,
+  OppProbability player1 action probability
+  --------------------------------------------
+  |- StrategyProbability player2 action probability
+
+query allPlays: Play - - - -
+query allEquilibriumStatuses: EquilibriumStatus - - -
+query allOpponentProbabilities: OppProbability - - -
+query allStrategyProbabilities: StrategyProbability - - -

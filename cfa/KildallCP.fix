@@ -1,0 +1,103 @@
+module KildallCP where
+
+import Numeric.Natural
+import Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HashMap
+import Data.Hashable
+import GHC.Generics
+
+```hs
+type Label = String
+type Variable = String
+
+data Op = Add | Sub | Mul | Div | Gt | Ge | Lt | Le | Eq | Ne
+  deriving (Eq, Show, Generic)
+
+instance Hashable Op
+
+data Expr
+  = Lit Integer
+  | Ref Variable
+  | Bin Op Expr Expr
+  deriving (Eq, Show, Generic)
+
+instance Hashable Expr
+
+type Pool = HashMap Variable Integer
+
+emptyPool :: Pool
+emptyPool = HashMap.empty
+
+poolLeq :: Pool -> Pool -> Bool
+poolLeq p q = HashMap.isSubmapOfBy (==) q p
+
+poolJoin :: Pool -> Pool -> Pool
+poolJoin p q = HashMap.filterWithKey (\x c -> HashMap.lookup x q == Just c) p
+
+applyOp :: Op -> Integer -> Integer -> Maybe Integer
+applyOp Add a b = Just (a + b)
+applyOp Sub a b = Just (a - b)
+applyOp Mul a b = Just (a * b)
+applyOp Div _ 0 = Nothing
+applyOp Div a b = Just (a `quot` b)
+applyOp Gt a b = Just (if a > b then 1 else 0)
+applyOp Ge a b = Just (if a >= b then 1 else 0)
+applyOp Lt a b = Just (if a < b then 1 else 0)
+applyOp Le a b = Just (if a <= b then 1 else 0)
+applyOp Eq a b = Just (if a == b then 1 else 0)
+applyOp Ne a b = Just (if a /= b then 1 else 0)
+
+eval :: Pool -> Expr -> Maybe Integer
+eval _ (Lit n) = Just n
+eval p (Ref x) = HashMap.lookup x p
+eval p (Bin op a b) = do
+  x <- eval p a
+  y <- eval p b
+  applyOp op x y
+
+transfer :: Variable -> Expr -> Pool -> Pool
+transfer x e p = maybe (HashMap.delete x p) (\c -> HashMap.insert x c p) (eval p e)
+```
+
+rel Entry: Label
+rel Seq: Label, Label
+
+rel Assign: Label, Variable, Expr
+rel Test: Label, Expr
+rel Nop: Label
+
+lat PoolL where
+    type = Pool
+    leq = poolLeq
+    join = poolJoin
+    meet = unused
+
+rel PoolAt: Label, PoolL
+
+rule entryPool:
+    Entry l
+    ---------------------------
+    |- PoolAt l emptyPool
+
+rule assignFlow:
+    Assign l x e,
+    PoolAt l p,
+    Seq l l'
+    ---------------------------
+    |- PoolAt l' (transfer x e p)
+
+rule testFlow:
+    Test l _,
+    PoolAt l p,
+    Seq l l'
+    ---------------------------
+    |- PoolAt l' p
+
+rule nopFlow:
+    Nop l,
+    PoolAt l p,
+    Seq l l'
+    ---------------------------
+    |- PoolAt l' p
+
+query poolAt: PoolAt + -

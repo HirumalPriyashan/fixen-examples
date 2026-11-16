@@ -1,0 +1,13 @@
+module Reachability where
+
+```hs
+type Vertex = String
+```
+
+rel Edge: Vertex, Vertex
+rel Path: Vertex, Vertex
+
+rule edgeToPath: Edge a b |- Path a b
+rule pathStep: Edge a b, Path b c |- Path a c
+
+query allPaths: Path - -

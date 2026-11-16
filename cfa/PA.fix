@@ -1,0 +1,14 @@
+module PA where
+
+rel Addr: String, String
+rel Copy: String, String
+rel Load: String, String
+rel Store: String, String
+rel PointsTo: String, String
+
+rule address: Addr dst obj |- PointsTo dst obj
+rule copy: Copy dst src, PointsTo src obj |- PointsTo dst obj
+rule load: Load dst src, PointsTo src cell, PointsTo cell obj |- PointsTo dst obj
+rule store: Store dst src, PointsTo dst cell, PointsTo src obj |- PointsTo cell obj
+
+query allPointsTo: PointsTo + -

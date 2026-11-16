@@ -1,0 +1,50 @@
+module SievePairwise where
+
+lat IsPrime where
+  type = Bool
+  leq = (>=)
+  join = (&&)
+  meet = (||)
+
+rel Limit: Int
+rel Candidate: Int
+rel Div: Int, Int
+rel Prime: Int, IsPrime
+
+rule firstCandidate:
+  Limit limit,
+  if (limit >= 2)
+  ----------------
+  |- Candidate 2
+
+rule nextCandidate:
+  Limit limit,
+  Candidate n,
+  if ((n + 1) <= limit)
+  ---------------------
+  |- Candidate (n + 1)
+
+rule assumePrime:
+  Candidate n
+  ---------------
+  |- Prime n True
+
+rule selfDivisor:
+  Candidate n
+  -------------
+  |- Div n n
+
+rule divisor:
+  Candidate divisor,
+  Candidate number,
+  if ((number `mod` divisor) == 0)
+  --------------------------------
+  |- Div number divisor
+
+rule markComposite:
+  Div number divisor,
+  if (number /= divisor)
+  ----------------------
+  |- Prime number False
+
+query allPrimality: Prime - -

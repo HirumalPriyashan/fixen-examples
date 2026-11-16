@@ -1,0 +1,62 @@
+module SieveMultiples where
+
+```hs
+progressValue :: Int -> Int
+progressValue = id
+```
+
+lat IsPrime where
+  type = Bool
+  leq = (>=)
+  join = (&&)
+  meet = (||)
+
+lat Progress where
+  type = Int
+  leq = (<=)
+  join = max
+  meet = min
+
+rel Limit: Int
+rel Candidate: Int
+rel Multiple: Int, Progress
+rel Prime: Int, IsPrime
+
+rule firstCandidate:
+  Limit limit,
+  if (limit >= 2)
+  ----------------
+  |- Candidate 2
+
+rule nextCandidate:
+  Limit limit,
+  Candidate n,
+  if ((n + 1) <= limit)
+  ---------------------
+  |- Candidate (n + 1)
+
+rule assumePrime:
+  Candidate n
+  ---------------
+  |- Prime n True
+
+rule firstMultiple:
+  Limit limit,
+  Candidate factor,
+  if ((factor * 2) <= limit)
+  --------------------------
+  |- Multiple factor (factor * 2)
+
+rule nextMultiple:
+  Limit limit,
+  Multiple factor composite,
+  if ((composite + factor) <= limit)
+  ----------------------------------
+  |- Multiple factor (composite + factor)
+
+rule markComposite:
+  Multiple _ composite
+  ---------------------
+  |- Prime (progressValue composite) False
+
+query allPrimality: Prime - -

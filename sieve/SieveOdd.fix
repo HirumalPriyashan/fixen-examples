@@ -1,0 +1,73 @@
+module SieveOdd where
+
+```hs
+progressValue :: Int -> Int
+progressValue = id
+```
+
+lat IsPrime where
+  type = Bool
+  leq = (>=)
+  join = (&&)
+  meet = (||)
+
+lat Progress where
+  type = Int
+  leq = (<=)
+  join = max
+  meet = min
+
+rel Limit: Int
+rel Candidate: Int
+rel Multiple: Int, Progress
+rel Prime: Int, IsPrime
+
+rule candidateTwo:
+  Limit limit,
+  if (limit >= 2)
+  ----------------
+  |- Candidate 2
+
+rule firstOddCandidate:
+  Limit limit,
+  if (limit >= 3)
+  ----------------
+  |- Candidate 3
+
+rule nextOddCandidate:
+  Limit limit,
+  Candidate n,
+  if ((n >= 3) && ((n + 2) <= limit))
+  ------------------------------------
+  |- Candidate (n + 2)
+
+rule assumePrime:
+  Candidate n
+  ---------------
+  |- Prime n True
+
+rule firstMultiple:
+  Limit limit,
+  Prime factor isPrime,
+  if (isPrime && ((factor > 2) && ((factor * factor) <= limit)))
+  --------------------------------------------------------------
+  |- Multiple factor (factor * factor)
+
+rule nextMultiple:
+  Limit limit,
+  Multiple factor composite,
+  if ((composite + (factor * 2)) <= limit)
+  ----------------------------------------
+  |- Multiple factor (composite + (factor * 2))
+
+rule markComposite:
+  Multiple _ composite
+  ---------------------
+  |- Prime (progressValue composite) False
+
+priority: |- nextOddCandidate { } < assumePrime { }
+priority: |- nextOddCandidate { } < firstMultiple { }
+priority: |- nextOddCandidate { } < nextMultiple { }
+priority: |- nextOddCandidate { } < markComposite { }
+
+query allPrimality: Prime - -

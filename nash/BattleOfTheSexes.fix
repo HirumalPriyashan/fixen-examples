@@ -1,0 +1,54 @@
+module BattleOfTheSexes where
+
+```hs
+type Player = String
+type Action = String
+```
+
+lat IsEquilibrium where
+  type = Bool
+  leq = (>=)
+  join = (&&)
+  meet = (||)
+
+rel Players: Player, Player
+rel PayOff: Player, Action, Action, Int
+
+rel Play: Action, Action, Int, Int
+rel NonEq: Action, Action
+rel EquilibriumStatus: Action, Action, IsEquilibrium
+
+rule constructPlay:
+  Players player1 player2,
+  PayOff player1 action1 action2 pay1,
+  PayOff player2 action2 action1 pay2
+  ----------------------------------
+  |- Play action1 action2 pay1 pay2
+
+rule firstPlayerCanImprove:
+  Play action1 action2 pay1 _,
+  Play alternative action2 alternativePay1 _,
+  if ((action1 /= alternative) && (pay1 < alternativePay1))
+  -----------------------------------------------------------
+  |- NonEq action1 action2
+
+rule secondPlayerCanImprove:
+  Play action1 action2 _ pay2,
+  Play action1 alternative _ alternativePay2,
+  if ((action2 /= alternative) && (pay2 < alternativePay2))
+  -----------------------------------------------------------
+  |- NonEq action1 action2
+
+rule assumeEquilibrium:
+  Play action1 action2 _ _
+  ------------------------
+  |- EquilibriumStatus action1 action2 True
+
+rule rejectNonEquilibrium:
+  NonEq action1 action2
+  ---------------------
+  |- EquilibriumStatus action1 action2 False
+
+query allPlays: Play - - - -
+query allNonEquilibria: NonEq - -
+query allEquilibriumStatuses: EquilibriumStatus - - -

@@ -1,0 +1,25 @@
+{-
+  Greatest common divisor by repeated subtraction (Euclid).
+
+  The set of numbers is closed under  a, b  |->  a - b  (for a > b).
+  Every number in the closure is a multiple of gcd, and gcd itself is
+  eventually reached, so gcd is the *smallest* element of the closure.
+-}
+
+module Gcd where
+
+import Numeric.Natural
+
+lat Min where
+  type = Natural
+  leq  = (>=)
+  join = min
+  meet = max
+
+rel Elem: Natural   -- input numbers, plus every difference derived from them
+rel Gcd: Min        -- smallest element seen so far
+
+rule diff: Elem a, Elem b, if a > b |- Elem (a - b)   -- close the set under subtraction
+rule gcd: Elem a |- Gcd (id a)                        -- every element is a candidate; min wins
+
+query ans: Gcd -

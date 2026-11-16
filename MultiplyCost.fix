@@ -1,0 +1,34 @@
+{-
+  Matrix-chain multiplication: the cheapest order to multiply M1 * ... * Mn.
+
+  Matrix Mi has shape  d(i-1) x d(i),  so the dimensions are given as
+  D 0 d0, D 1 d1, ..., D n dn.
+
+  C i j c: multiplying Mi..Mj costs at most c scalar multiplications.
+  Splitting between k and k+1:
+
+    C i j  =  C i k  +  C (k+1) j  +  d(i-1) * d(k) * d(j)
+
+-}
+
+module MultiplyCost where
+
+import Numeric.Natural
+
+lat Cost where
+  type = Natural
+  leq  = (>=)
+  join = min
+  meet = max
+
+rel D: Natural, Natural         -- D i d: dimension d(i) (input)
+rel C: Natural, Natural, Cost   -- C i j c: best known cost for Mi..Mj
+
+-- A single matrix needs no multiplications
+rule d: D i _, if i > 0 |- C i i 0
+
+-- Combine Mi..Mk1 with Mk2..Mj, where k2 = k1 + 1 and i2 = i - 1
+rule cost: C i k1 c1, C k2 j c2, D i2 di, D k1 dk, D j dj, if k2 == (k1 + 1), if i == (i2 + 1)
+         |- C i j ((c1 + c2) + (di * (dk * dj)))
+
+query costs: C + + -

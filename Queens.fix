@@ -1,0 +1,49 @@
+{-
+  N-Queens with forward checking.
+
+  Queens are placed one row at a time. A State holds the columns placed so
+  far and, for every remaining row, the columns still free (its domain).
+-}
+
+module Queens where
+
+import Numeric.Natural
+
+```hs
+type Placed = [Natural]      -- column of each queen, row by row
+type Domains = [[Natural]]   -- free columns for each remaining row
+
+-- Remove column c and its diagonals from the rows below the current one
+propagate :: Natural -> Domains -> Domains
+propagate c ds = zipWith prune [1 ..] (drop 1 ds)
+  where
+    prune k = filter (\x -> x /= c && dist x c /= k)
+    dist x y = if x > y then x - y else y - x
+
+-- c is free in the current row and no later row becomes empty
+canPlace :: Natural -> Domains -> Bool
+canPlace c ds = case ds of
+  d : _ -> c `elem` d && all (not . null) (propagate c ds)
+  [] -> False
+```
+
+rel N: Natural                -- board size (input)
+rel Col: Natural              -- columns 0 .. n-1
+rel State: Placed, Domains    -- partial placement + remaining domains
+rel Solution: Placed          -- complete placements
+
+-- Enumerate the columns 0 .. n-1
+rule col0: N n, if n > 0 |- Col 0
+rule colS: Col c, N n, if (c + 1) < n |- Col (c + 1)
+
+-- Empty board: every row may use every column
+rule start: N n |- State [] (replicate (fromIntegral n) (enumFromTo 0 (n - 1)))
+
+-- Place the next queen in column c if forward checking allows it
+rule place: State qs ds, Col c, if canPlace c ds
+          |- State (qs ++ [c]) (propagate c ds)
+
+-- No rows left: the placement is complete
+rule done: State qs ds, if null ds |- Solution qs
+
+query solutions: Solution -

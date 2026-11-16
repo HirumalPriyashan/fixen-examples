@@ -1,0 +1,48 @@
+{-
+    AND = x * y    OR = max x y    XOR = (x + y) - 2*(x*y)    NOT = 1 - x
+
+  Carries (and borrows) ripple from the LSB upward:
+
+    C4 <-[col 3]<-C3-[col 2]<-C2-[col 1]<-C1-[col 0]<- C0 = 0
+            |         |         |         |
+            S3        S2        S1        S0
+-}
+
+module BinaryAdd where
+
+import Numeric.Natural
+
+rel A: Natural, Natural   -- input bits of A (lsb is 0)
+rel B: Natural, Natural   -- input bits of B
+rel C: Natural, Natural   -- carry into bit i (seed: C 0 0)
+rel R: Natural, Natural   -- borrow into bit i (seed: R 0 0)
+
+rel P: Natural, Natural       -- A xor B
+rel P_sub: Natural, Natural   -- A xnor B
+rel G: Natural, Natural       -- A and B
+rel G_sub: Natural, Natural   -- (not A) and B
+rel S: Natural, Natural       -- result of A + B
+rel D: Natural, Natural       -- result of A - B
+
+-- Addition
+rule p: A i x, B i y |- P i ((x + y) - (2 * (x * y)))   -- propagate: x xor y
+rule g: A i x, B i y |- G i (x*y)                       -- generate:  x and y
+rule c: C i c, P i p, G i g |- C (i+1) (max g (p*c))     -- carry out = g or (p and c)
+rule s: C i x, P i y |- S i ((x + y) - (2 * (x * y)))    -- sum bit   = c xor p
+
+-- Subtraction
+rule p_sub: A i x, B i y |- P_sub i (1 - ((x + y) - (2 * (x * y))))   -- x == y: pass borrow on
+rule g_sub: A i x, B i y |- G_sub i ((1-x)*y)                         -- 0 - 1: must borrow
+rule r: R i r, P_sub i p, G_sub i g |- R (i+1) (max g (p*r))          -- borrow out = g or (p and r)
+
+-- Difference bit: a borrow from bit i+1 is worth 2 here, so
+--   D i = (x + 2 * borrow_out) - (y + borrow_in)
+-- r1 = R i (borrow in), r2 = R (i+1) (borrow out)
+rule d: A i x, B i y, R i r1, R i2 r2, if i2 == (i + 1)
+    |- D i ((x + (2 * r2)) - (y + r1))
+
+query sumBits: S - -   -- A + B
+query carries: C - -   -- carries
+
+query diffBits: D - -  -- A - B
+query reqs: R - -      -- borrows

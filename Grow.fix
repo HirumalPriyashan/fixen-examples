@@ -1,0 +1,16 @@
+{-
+  Integer square root by counting upward.
+
+  Seed X n 0. The rule keeps stepping x -> x + 1 while the next value still
+  squares to at most n, so the largest x reached is floor (sqrt n).
+-}
+
+module Grow where
+
+import Numeric.Natural
+
+rel X: Natural, Natural
+
+rule x: X n x, if ((x+1) ^ 2) <= n |- X n (x + 1)   -- step up while (x+1)^2 <= n
+
+query roots: X - -
